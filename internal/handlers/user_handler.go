@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/izukanji/ovc/internal/models"
 	"github.com/izukanji/ovc/internal/services"
 	"github.com/izukanji/ovc/pkg/utils"
@@ -40,7 +41,11 @@ func (h *UserHandler) List(c *gin.Context) {
 }
 
 func (h *UserHandler) Update(c *gin.Context) {
-	id := c.Param("id")
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.BadRequest(c, "invalid user id")
+		return
+	}
 	var req models.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.BadRequest(c, err.Error())
@@ -54,7 +59,11 @@ func (h *UserHandler) Update(c *gin.Context) {
 }
 
 func (h *UserHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		utils.BadRequest(c, "invalid user id")
+		return
+	}
 	if err := h.userService.Delete(c.Request.Context(), id); err != nil {
 		utils.InternalError(c)
 		return

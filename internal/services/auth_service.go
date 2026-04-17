@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/izukanji/ovc/internal/config"
 	"github.com/izukanji/ovc/internal/models"
 	"github.com/izukanji/ovc/internal/repository"
@@ -28,7 +29,7 @@ func (s *AuthService) Login(ctx context.Context, req models.LoginRequest) (*mode
 	if !utils.CheckPassword(req.Password, user.PasswordHash) {
 		return nil, fmt.Errorf("invalid email or password")
 	}
-	token, err := utils.GenerateToken(user.ID, s.cfg.JWTSecret, s.cfg.JWTExpiry)
+	token, err := utils.GenerateToken(user.ID.String(), s.cfg.JWTSecret, s.cfg.JWTExpiry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token")
 	}
@@ -61,6 +62,6 @@ func (s *AuthService) Register(ctx context.Context, req models.CreateUserRequest
 	return user, nil
 }
 
-func (s *AuthService) Me(ctx context.Context, userID string) (*models.User, error) {
+func (s *AuthService) Me(ctx context.Context, userID uuid.UUID) (*models.User, error) {
 	return s.userRepo.FindByID(ctx, userID)
 }

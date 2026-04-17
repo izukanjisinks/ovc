@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/izukanji/ovc/internal/config"
 	"github.com/izukanji/ovc/internal/repository"
 	"github.com/izukanji/ovc/pkg/utils"
@@ -27,7 +28,13 @@ func Auth(cfg *config.Config, userRepo *repository.UserRepository) gin.HandlerFu
 			c.Abort()
 			return
 		}
-		user, err := userRepo.FindByID(c.Request.Context(), claims.UserID)
+		userID, err := uuid.Parse(claims.UserID)
+		if err != nil {
+			utils.Unauthorized(c, "invalid token subject")
+			c.Abort()
+			return
+		}
+		user, err := userRepo.FindByID(c.Request.Context(), userID)
 		if err != nil {
 			utils.Unauthorized(c, "user not found")
 			c.Abort()

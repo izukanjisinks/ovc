@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/izukanji/ovc/internal/models"
 	"github.com/izukanji/ovc/internal/repository"
 )
@@ -20,7 +21,7 @@ func (s *UserService) List(ctx context.Context) ([]models.User, error) {
 	return s.userRepo.List(ctx)
 }
 
-func (s *UserService) Update(ctx context.Context, id string, req models.UpdateUserRequest) error {
+func (s *UserService) Update(ctx context.Context, id uuid.UUID, req models.UpdateUserRequest) error {
 	roleID, err := s.permRepo.RoleIDByName(ctx, req.RoleName)
 	if err != nil {
 		return err
@@ -28,6 +29,6 @@ func (s *UserService) Update(ctx context.Context, id string, req models.UpdateUs
 	return s.userRepo.Update(ctx, id, req.FullName, roleID)
 }
 
-func (s *UserService) Delete(ctx context.Context, id string) error {
+func (s *UserService) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.userRepo.Delete(ctx, id)
 }

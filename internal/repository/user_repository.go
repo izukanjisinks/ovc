@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/izukanji/ovc/internal/models"
 )
@@ -45,7 +46,7 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*models
 	return u, nil
 }
 
-func (r *UserRepository) FindByID(ctx context.Context, id string) (*models.User, error) {
+func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	row := r.db.QueryRow(ctx, userSelect+` WHERE u.id = $1`, id)
 	u, err := scanUser(row)
 	if err != nil {
@@ -77,7 +78,7 @@ func (r *UserRepository) List(ctx context.Context) ([]models.User, error) {
 	return users, nil
 }
 
-func (r *UserRepository) Update(ctx context.Context, id, fullName string, roleID int) error {
+func (r *UserRepository) Update(ctx context.Context, id uuid.UUID, fullName string, roleID uuid.UUID) error {
 	_, err := r.db.Exec(ctx,
 		`UPDATE users SET full_name = $1, role_id = $2, updated_at = NOW() WHERE id = $3`,
 		fullName, roleID, id,
@@ -85,7 +86,7 @@ func (r *UserRepository) Update(ctx context.Context, id, fullName string, roleID
 	return err
 }
 
-func (r *UserRepository) Delete(ctx context.Context, id string) error {
+func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := r.db.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)
 	return err
 }

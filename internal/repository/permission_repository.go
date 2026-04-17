@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -14,8 +15,7 @@ func NewPermissionRepository(db *pgxpool.Pool) *PermissionRepository {
 	return &PermissionRepository{db: db}
 }
 
-// HasPermission checks if a role has access to resource+action in one query — no JOIN needed.
-func (r *PermissionRepository) HasPermission(ctx context.Context, roleID int, resource, action string) (bool, error) {
+func (r *PermissionRepository) HasPermission(ctx context.Context, roleID uuid.UUID, resource, action string) (bool, error) {
 	var exists bool
 	query := `
 		SELECT EXISTS (
@@ -26,9 +26,8 @@ func (r *PermissionRepository) HasPermission(ctx context.Context, roleID int, re
 	return exists, err
 }
 
-// RoleIDByName returns the integer ID for a role name.
-func (r *PermissionRepository) RoleIDByName(ctx context.Context, name string) (int, error) {
-	var id int
+func (r *PermissionRepository) RoleIDByName(ctx context.Context, name string) (uuid.UUID, error) {
+	var id uuid.UUID
 	err := r.db.QueryRow(ctx, `SELECT id FROM roles WHERE name = $1`, name).Scan(&id)
 	return id, err
 }

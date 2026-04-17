@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/izukanji/ovc/internal/middleware"
 	"github.com/izukanji/ovc/internal/models"
 	"github.com/izukanji/ovc/internal/services"
@@ -32,7 +33,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 func (h *AuthHandler) Me(c *gin.Context) {
 	userID, _ := c.Get(middleware.UserIDKey)
-	user, err := h.authService.Me(c.Request.Context(), userID.(string))
+	user, err := h.authService.Me(c.Request.Context(), userID.(uuid.UUID))
 	if err != nil {
 		utils.NotFound(c, "user not found")
 		return
