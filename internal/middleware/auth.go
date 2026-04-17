@@ -5,13 +5,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/izukanji/ovc/internal/config"
+	"github.com/izukanji/ovc/internal/repository"
 	"github.com/izukanji/ovc/pkg/utils"
 )
 
 const UserIDKey = "userID"
-const UserRoleKey = "userRole"
+const UserRoleIDKey = "userRoleID"
 
-func Auth(cfg *config.Config) gin.HandlerFunc {
+func Auth(cfg *config.Config, userRepo *repository.UserRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader("Authorization")
 		if !strings.HasPrefix(header, "Bearer ") {
@@ -26,8 +27,14 @@ func Auth(cfg *config.Config) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		c.Set(UserIDKey, claims.UserID)
-		c.Set(UserRoleKey, string(claims.Role))
+		user, err := userRepo.FindByID(c.Request.Context(), claims.UserID)
+		if err != nil {
+			utils.Unauthorized(c, "user not found")
+			c.Abort()
+			return
+		}
+		c.Set(UserIDKey, user.ID)
+		c.Set(UserRoleIDKey, user.RoleID)
 		c.Next()
 	}
 }

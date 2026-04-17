@@ -12,11 +12,12 @@ import (
 
 type AuthService struct {
 	userRepo *repository.UserRepository
+	permRepo *repository.PermissionRepository
 	cfg      *config.Config
 }
 
-func NewAuthService(userRepo *repository.UserRepository, cfg *config.Config) *AuthService {
-	return &AuthService{userRepo: userRepo, cfg: cfg}
+func NewAuthService(userRepo *repository.UserRepository, permRepo *repository.PermissionRepository, cfg *config.Config) *AuthService {
+	return &AuthService{userRepo: userRepo, permRepo: permRepo, cfg: cfg}
 }
 
 func (s *AuthService) Login(ctx context.Context, req models.LoginRequest) (*models.LoginResponse, error) {
@@ -27,7 +28,7 @@ func (s *AuthService) Login(ctx context.Context, req models.LoginRequest) (*mode
 	if !utils.CheckPassword(req.Password, user.PasswordHash) {
 		return nil, fmt.Errorf("invalid email or password")
 	}
-	token, err := utils.GenerateToken(user.ID, string(user.Role), s.cfg.JWTSecret, s.cfg.JWTExpiry)
+	token, err := utils.GenerateToken(user.ID, s.cfg.JWTSecret, s.cfg.JWTExpiry)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token")
 	}
@@ -35,23 +36,28 @@ func (s *AuthService) Login(ctx context.Context, req models.LoginRequest) (*mode
 }
 
 func (s *AuthService) Register(ctx context.Context, req models.CreateUserRequest) (*models.User, error) {
+	roleName := req.RoleName
+	if roleName == "" {
+		roleName = "user"
+	}
+	roleID, err := s.permRepo.RoleIDByName(ctx, roleName)
+	if err != nil {
+		return nil, fmt.Errorf("invalid role")
+	}
 	hash, err := utils.HashPassword(req.Password)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password")
-	}
-	role := req.Role
-	if role == "" {
-		role = models.RoleUser
 	}
 	user := &models.User{
 		Email:        req.Email,
 		PasswordHash: hash,
 		FullName:     req.FullName,
-		Role:         role,
+		RoleID:       roleID,
 	}
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, fmt.Errorf("email already in use")
 	}
+	user.RoleName = roleName
 	return user, nil
 }
 

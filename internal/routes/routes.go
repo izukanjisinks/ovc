@@ -13,21 +13,20 @@ import (
 func Setup(r *gin.Engine, db *pgxpool.Pool, cfg *config.Config) {
 	r.Use(middleware.CORS())
 
-	// Repositories
 	userRepo := repository.NewUserRepository(db)
+	permRepo := repository.NewPermissionRepository(db)
 
-	// Services
-	authService := services.NewAuthService(userRepo, cfg)
-	userService := services.NewUserService(userRepo)
+	authService := services.NewAuthService(userRepo, permRepo, cfg)
+	userService := services.NewUserService(userRepo, permRepo)
 
-	// Handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(authService, userService)
 
 	r.GET("/health", handlers.Health)
 
 	api := r.Group("/api")
+	authMW := middleware.Auth(cfg, userRepo)
 
-	registerAuthRoutes(api, authHandler, cfg)
-	registerUserRoutes(api, userHandler, cfg)
+	registerAuthRoutes(api, authHandler, authMW)
+	registerUserRoutes(api, userHandler, authMW, permRepo)
 }
