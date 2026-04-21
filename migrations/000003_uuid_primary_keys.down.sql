@@ -1,2 +1,0 @@
--- This migration is destructive (drops integer PKs). Down is not safely reversible.
--- Restore from backup if needed.

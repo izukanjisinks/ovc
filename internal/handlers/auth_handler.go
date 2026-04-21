@@ -1,7 +1,8 @@
 package handlers
 
 import (
-	"github.com/gin-gonic/gin"
+	"net/http"
+
 	"github.com/google/uuid"
 	"github.com/izukanji/ovc/internal/middleware"
 	"github.com/izukanji/ovc/internal/models"
@@ -17,26 +18,34 @@ func NewAuthHandler(authService *services.AuthService) *AuthHandler {
 	return &AuthHandler{authService: authService}
 }
 
-func (h *AuthHandler) Login(c *gin.Context) {
+func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req models.LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+	if err := utils.DecodeJSON(r, &req); err != nil {
+		utils.BadRequest(w, "invalid request body")
 		return
 	}
-	resp, err := h.authService.Login(c.Request.Context(), req)
+	if req.Email == "" || req.Password == "" {
+		utils.BadRequest(w, "email and password are required")
+		return
+	}
+	resp, err := h.authService.Login(r.Context(), req)
 	if err != nil {
-		utils.Unauthorized(c, err.Error())
+		utils.Unauthorized(w, err.Error())
 		return
 	}
-	utils.OK(c, resp)
+	utils.OK(w, resp)
 }
 
-func (h *AuthHandler) Me(c *gin.Context) {
-	userID, _ := c.Get(middleware.UserIDKey)
-	user, err := h.authService.Me(c.Request.Context(), userID.(uuid.UUID))
-	if err != nil {
-		utils.NotFound(c, "user not found")
+func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		utils.Unauthorized(w, "unauthorized")
 		return
 	}
-	utils.OK(c, user)
+	user, err := h.authService.Me(r.Context(), userID)
+	if err != nil {
+		utils.NotFound(w, "user not found")
+		return
+	}
+	utils.OK(w, user)
 }

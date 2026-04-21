@@ -1,19 +1,19 @@
 package database
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func Connect(databaseURL string) (*pgxpool.Pool, error) {
-	pool, err := pgxpool.New(context.Background(), databaseURL)
+func Connect(databaseURL string) (*sql.DB, error) {
+	db, err := sql.Open("pgx", databaseURL)
 	if err != nil {
-		return nil, fmt.Errorf("unable to connect to database: %w", err)
+		return nil, fmt.Errorf("unable to open database: %w", err)
 	}
-	if err := pool.Ping(context.Background()); err != nil {
+	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("database ping failed: %w", err)
 	}
-	return pool, nil
+	return db, nil
 }

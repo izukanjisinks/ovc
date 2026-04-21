@@ -1,10 +1,7 @@
 include .env
 export
 
-DB_URL ?= $(DATABASE_URL)
-MIGRATE = migrate -path ./migrations -database "$(DB_URL)"
-
-.PHONY: run build migrate-up migrate-down migrate-create docker-up docker-down
+.PHONY: run build migrate-up migrate-down migrate-reset migrate-status docker-up docker-down tidy
 
 run:
 	go run ./cmd/api
@@ -13,13 +10,16 @@ build:
 	go build -o bin/api ./cmd/api
 
 migrate-up:
-	$(MIGRATE) up
+	go run ./cmd/migrate -command=up
 
 migrate-down:
-	$(MIGRATE) down 1
+	go run ./cmd/migrate -command=down
 
-migrate-create:
-	$(MIGRATE) create -ext sql -dir ./migrations -seq $(name)
+migrate-reset:
+	go run ./cmd/migrate -command=reset
+
+migrate-status:
+	go run ./cmd/migrate -command=status
 
 docker-up:
 	docker compose up -d

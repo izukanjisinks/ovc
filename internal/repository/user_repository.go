@@ -2,18 +2,18 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/izukanji/ovc/internal/models"
 )
 
 type UserRepository struct {
-	db *pgxpool.Pool
+	db *sql.DB
 }
 
-func NewUserRepository(db *pgxpool.Pool) *UserRepository {
+func NewUserRepository(db *sql.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
@@ -22,7 +22,7 @@ const userSelect = `
 	FROM users u
 	JOIN roles r ON r.id = u.role_id`
 
-func scanUser(row interface{ Scan(...any) error }) (*models.User, error) {
+func scanUser(row *sql.Row) (*models.User, error) {
 	u := &models.User{}
 	err := row.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.FullName, &u.RoleID, &u.RoleName, &u.CreatedAt, &u.UpdatedAt)
 	return u, err
@@ -33,12 +33,12 @@ func (r *UserRepository) Create(ctx context.Context, u *models.User) error {
 		INSERT INTO users (email, password_hash, full_name, role_id)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at, updated_at`
-	return r.db.QueryRow(ctx, query, u.Email, u.PasswordHash, u.RoleID).
+	return r.db.QueryRowContext(ctx, query, u.Email, u.PasswordHash, u.RoleID).
 		Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
 }
 
 func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
-	row := r.db.QueryRow(ctx, userSelect+` WHERE u.email = $1`, email)
+	row := r.db.QueryRowContext(ctx, userSelect+` WHERE u.email = $1`, email)
 	u, err := scanUser(row)
 	if err != nil {
 		return nil, fmt.Errorf("user not found")
@@ -47,7 +47,7 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*models
 }
 
 func (r *UserRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
-	row := r.db.QueryRow(ctx, userSelect+` WHERE u.id = $1`, id)
+	row := r.db.QueryRowContext(ctx, userSelect+` WHERE u.id = $1`, id)
 	u, err := scanUser(row)
 	if err != nil {
 		return nil, fmt.Errorf("user not found")
@@ -61,7 +61,7 @@ func (r *UserRepository) List(ctx context.Context) ([]models.User, error) {
 		FROM users u
 		JOIN roles r ON r.id = u.role_id
 		ORDER BY u.created_at DESC`
-	rows, err := r.db.Query(ctx, query)
+	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -75,11 +75,11 @@ func (r *UserRepository) List(ctx context.Context) ([]models.User, error) {
 		}
 		users = append(users, u)
 	}
-	return users, nil
+	return users, rows.Err()
 }
 
 func (r *UserRepository) Update(ctx context.Context, id uuid.UUID, fullName string, roleID uuid.UUID) error {
-	_, err := r.db.Exec(ctx,
+	_, err := r.db.ExecContext(ctx,
 		`UPDATE users SET full_name = $1, role_id = $2, updated_at = NOW() WHERE id = $3`,
 		fullName, roleID, id,
 	)
@@ -87,6 +87,6 @@ func (r *UserRepository) Update(ctx context.Context, id uuid.UUID, fullName stri
 }
 
 func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	_, err := r.db.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)
+	_, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, id)
 	return err
 }

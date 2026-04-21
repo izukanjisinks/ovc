@@ -1,37 +1,39 @@
 package main
 
 import (
-	"log"
+	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/izukanji/ovc/internal/config"
 	"github.com/izukanji/ovc/internal/database"
 	"github.com/izukanji/ovc/internal/routes"
+	"go.uber.org/zap"
 )
 
 func main() {
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
+
 	if err := godotenv.Load(); err != nil {
-		log.Println("no .env file found, using environment variables")
+		logger.Info("no .env file found, using environment variables")
 	}
 
 	cfg := config.Load()
 
 	db, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("database connection failed: %v", err)
+		logger.Fatal("database connection failed", zap.Error(err))
 	}
 	defer db.Close()
 
-	if cfg.Env == "production" {
-		gin.SetMode(gin.ReleaseMode)
+	if err := database.RunMigrations(db); err != nil {
+		logger.Fatal("migrations failed", zap.Error(err))
 	}
 
-	r := gin.Default()
-	routes.Setup(r, db, cfg)
+	handler := routes.Setup(db, cfg)
 
-	log.Printf("server starting on :%s", cfg.Port)
-	if err := r.Run(":" + cfg.Port); err != nil {
-		log.Fatalf("server failed: %v", err)
+	logger.Info("server starting", zap.String("port", cfg.Port))
+	if err := http.ListenAndServe(":"+cfg.Port, handler); err != nil {
+		logger.Fatal("server failed", zap.Error(err))
 	}
 }

@@ -2,16 +2,16 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PermissionRepository struct {
-	db *pgxpool.Pool
+	db *sql.DB
 }
 
-func NewPermissionRepository(db *pgxpool.Pool) *PermissionRepository {
+func NewPermissionRepository(db *sql.DB) *PermissionRepository {
 	return &PermissionRepository{db: db}
 }
 
@@ -22,12 +22,12 @@ func (r *PermissionRepository) HasPermission(ctx context.Context, roleID uuid.UU
 			SELECT 1 FROM role_permissions
 			WHERE role_id = $1 AND resource = $2 AND action = $3
 		)`
-	err := r.db.QueryRow(ctx, query, roleID, resource, action).Scan(&exists)
+	err := r.db.QueryRowContext(ctx, query, roleID, resource, action).Scan(&exists)
 	return exists, err
 }
 
 func (r *PermissionRepository) RoleIDByName(ctx context.Context, name string) (uuid.UUID, error) {
 	var id uuid.UUID
-	err := r.db.QueryRow(ctx, `SELECT id FROM roles WHERE name = $1`, name).Scan(&id)
+	err := r.db.QueryRowContext(ctx, `SELECT id FROM roles WHERE name = $1`, name).Scan(&id)
 	return id, err
 }

@@ -3,9 +3,9 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/izukanji/ovc/pkg/utils"
 )
 
-func Health(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+func Health(w http.ResponseWriter, r *http.Request) {
+	utils.OK(w, map[string]string{"status": "ok"})
 }

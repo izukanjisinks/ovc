@@ -1,7 +1,8 @@
 package handlers
 
 import (
-	"github.com/gin-gonic/gin"
+	"net/http"
+
 	"github.com/google/uuid"
 	"github.com/izukanji/ovc/internal/models"
 	"github.com/izukanji/ovc/internal/services"
@@ -17,56 +18,64 @@ func NewUserHandler(authService *services.AuthService, userService *services.Use
 	return &UserHandler{authService: authService, userService: userService}
 }
 
-func (h *UserHandler) Create(c *gin.Context) {
+func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+	if err := utils.DecodeJSON(r, &req); err != nil {
+		utils.BadRequest(w, "invalid request body")
 		return
 	}
-	user, err := h.authService.Register(c.Request.Context(), req)
+	if req.Email == "" || req.Password == "" || req.FullName == "" {
+		utils.BadRequest(w, "email, password and full_name are required")
+		return
+	}
+	user, err := h.authService.Register(r.Context(), req)
 	if err != nil {
-		utils.BadRequest(c, err.Error())
+		utils.BadRequest(w, err.Error())
 		return
 	}
-	utils.Created(c, user)
+	utils.Created(w, user)
 }
 
-func (h *UserHandler) List(c *gin.Context) {
-	users, err := h.userService.List(c.Request.Context())
+func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
+	users, err := h.userService.List(r.Context())
 	if err != nil {
-		utils.InternalError(c)
+		utils.InternalError(w)
 		return
 	}
-	utils.OK(c, users)
+	utils.OK(w, users)
 }
 
-func (h *UserHandler) Update(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		utils.BadRequest(c, "invalid user id")
+		utils.BadRequest(w, "invalid user id")
 		return
 	}
 	var req models.UpdateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.BadRequest(c, err.Error())
+	if err := utils.DecodeJSON(r, &req); err != nil {
+		utils.BadRequest(w, "invalid request body")
 		return
 	}
-	if err := h.userService.Update(c.Request.Context(), id, req); err != nil {
-		utils.InternalError(c)
+	if req.FullName == "" || req.RoleName == "" {
+		utils.BadRequest(w, "full_name and role are required")
 		return
 	}
-	utils.Message(c, "user updated")
+	if err := h.userService.Update(r.Context(), id, req); err != nil {
+		utils.InternalError(w)
+		return
+	}
+	utils.Message(w, "user updated")
 }
 
-func (h *UserHandler) Delete(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
-		utils.BadRequest(c, "invalid user id")
+		utils.BadRequest(w, "invalid user id")
 		return
 	}
-	if err := h.userService.Delete(c.Request.Context(), id); err != nil {
-		utils.InternalError(c)
+	if err := h.userService.Delete(r.Context(), id); err != nil {
+		utils.InternalError(w)
 		return
 	}
-	utils.Message(c, "user deleted")
+	utils.Message(w, "user deleted")
 }
