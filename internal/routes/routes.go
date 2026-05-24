@@ -18,8 +18,16 @@ func Setup(db *sql.DB, cfg *config.Config) http.Handler {
 	authService := services.NewAuthService(userRepo, permRepo, cfg)
 	userService := services.NewUserService(userRepo, permRepo)
 
+	childRepo := repository.NewChildRepository(db)
+	lookupRepo := repository.NewLookupRepository(db)
+
+	childService := services.NewChildService(childRepo)
+	lookupService := services.NewLookupService(lookupRepo)
+
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(authService, userService)
+	childHandler := handlers.NewChildHandler(childService)
+	lookupHandler := handlers.NewLookupHandler(lookupService)
 
 	authMW := middleware.Auth(cfg, userRepo)
 
@@ -27,31 +35,10 @@ func Setup(db *sql.DB, cfg *config.Config) http.Handler {
 
 	mux.HandleFunc("GET /health", handlers.Health)
 
-	// Auth
-	mux.HandleFunc("POST /api/auth/login", authHandler.Login)
-	mux.Handle("GET /api/auth/me", authMW(http.HandlerFunc(authHandler.Me)))
-
-	// Users — auth + permission per route
-	mux.Handle("POST /api/users", authMW(
-		middleware.RequirePermission(permRepo, "user-management", "create")(
-			http.HandlerFunc(userHandler.Create),
-		),
-	))
-	mux.Handle("GET /api/users", authMW(
-		middleware.RequirePermission(permRepo, "user-management", "read")(
-			http.HandlerFunc(userHandler.List),
-		),
-	))
-	mux.Handle("PUT /api/users/{id}", authMW(
-		middleware.RequirePermission(permRepo, "user-management", "update")(
-			http.HandlerFunc(userHandler.Update),
-		),
-	))
-	mux.Handle("DELETE /api/users/{id}", authMW(
-		middleware.RequirePermission(permRepo, "user-management", "delete")(
-			http.HandlerFunc(userHandler.Delete),
-		),
-	))
+	registerAuthRoutes(mux, authHandler, authMW)
+	registerUserRoutes(mux, userHandler, authMW, permRepo)
+	registerChildRoutes(mux, childHandler, authMW, permRepo)
+	registerLookupRoutes(mux, lookupHandler, authMW, permRepo)
 
 	return middleware.CORS(mux)
 }
