@@ -57,7 +57,7 @@ func (r *ChildRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.C
 
 func (r *ChildRepository) List(ctx context.Context, search string) ([]models.Child, error) {
 	query := childSelect
-	args := []interface{}{}
+	args := []any{}
 	if search != "" {
 		query += ` WHERE pupil_id ILIKE $1`
 		args = append(args, "%"+search+"%")
@@ -70,7 +70,7 @@ func (r *ChildRepository) List(ctx context.Context, search string) ([]models.Chi
 	}
 	defer rows.Close()
 
-	var children []models.Child
+	children := []models.Child{}
 	for rows.Next() {
 		var c models.Child
 		if err := rows.Scan(
@@ -137,7 +137,7 @@ func (r *ChildRepository) GetCategories(ctx context.Context, childID uuid.UUID) 
 	}
 	defer rows.Close()
 
-	var cats []models.OVCCategory
+	cats := []models.OVCCategory{}
 	for rows.Next() {
 		var cat models.OVCCategory
 		if err := rows.Scan(&cat.ID, &cat.Name); err != nil {
@@ -184,7 +184,7 @@ func (r *ChildRepository) GetRequisites(ctx context.Context, childID uuid.UUID) 
 	}
 	defer rows.Close()
 
-	var items []models.ChildRequisite
+	items := []models.ChildRequisite{}
 	for rows.Next() {
 		var item models.ChildRequisite
 		if err := rows.Scan(&item.ID, &item.Name, &item.Quantity, &item.Checked, &item.PricePerItem); err != nil {
@@ -228,7 +228,7 @@ func (r *ChildRepository) GetSponsors(ctx context.Context, childID uuid.UUID) ([
 	}
 	defer rows.Close()
 
-	var sponsors []models.Sponsor
+	sponsors := []models.Sponsor{}
 	for rows.Next() {
 		var s models.Sponsor
 		if err := rows.Scan(&s.ID, &s.Name); err != nil {

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/development -maxdepth 2 -type d -name \"*frontend*\" -o -type d -name \"*ui*\" -o -type d -name \"*web*\" 2>/dev/null)",
+      "Read(//c/development/**)"
+    ]
+  }
+}

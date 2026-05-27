@@ -22,7 +22,7 @@ func (r *LookupRepository) ListCategories(ctx context.Context) ([]models.OVCCate
 	}
 	defer rows.Close()
 
-	var cats []models.OVCCategory
+	cats := []models.OVCCategory{}
 	for rows.Next() {
 		var c models.OVCCategory
 		if err := rows.Scan(&c.ID, &c.Name); err != nil {
@@ -40,7 +40,7 @@ func (r *LookupRepository) ListRequisites(ctx context.Context) ([]models.Requisi
 	}
 	defer rows.Close()
 
-	var items []models.Requisite
+	items := []models.Requisite{}
 	for rows.Next() {
 		var item models.Requisite
 		if err := rows.Scan(&item.ID, &item.Name, &item.DefaultPrice); err != nil {
@@ -58,7 +58,7 @@ func (r *LookupRepository) ListSponsors(ctx context.Context) ([]models.Sponsor, 
 	}
 	defer rows.Close()
 
-	var sponsors []models.Sponsor
+	sponsors := []models.Sponsor{}
 	for rows.Next() {
 		var s models.Sponsor
 		if err := rows.Scan(&s.ID, &s.Name); err != nil {

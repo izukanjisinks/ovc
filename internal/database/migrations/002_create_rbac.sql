@@ -64,7 +64,7 @@ WHERE (resource, action) NOT IN (
 INSERT INTO users (email, password_hash, full_name, role_id)
 VALUES (
     'admin@ovc.local',
-    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+    '$2a$10$G5OW.dVQ3uUpDyFyzMo6w.udtgvAQz3ekne56MDVCxQeAeO01JcFO',
     'System Administrator',
     1
 ) ON CONFLICT (email) DO NOTHING;
