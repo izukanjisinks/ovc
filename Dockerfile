@@ -6,9 +6,8 @@ COPY . .
 RUN go build -o bin/api ./cmd/api
 
 FROM alpine:3.20
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
 COPY --from=builder /app/bin/api .
-COPY --from=builder /app/migrations ./migrations
-EXPOSE 8080
+EXPOSE 8085
 CMD ["./api"]

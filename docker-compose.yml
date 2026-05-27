@@ -3,22 +3,60 @@ version: "3.9"
 services:
   db:
     image: postgres:16-alpine
+    container_name: ovc-db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ovc_db
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ovc_db}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - ovc-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ovc-api
+    restart: unless-stopped
     ports:
-      - "8080:8080"
-    env_file: .env
+      - "8085:8085"
+    environment:
+      PORT: 8085
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@ovc-db:5432/${POSTGRES_DB:-ovc_db}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-24}
+      APP_ENV: ${APP_ENV:-production}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    networks:
+      - ovc-net
+
+  frontend:
+    build:
+      context: ../ovc-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api/v1
+    container_name: ovc-frontend
+    restart: unless-stopped
+    ports:
+      - "3032:80"
+    depends_on:
+      - api
+    networks:
+      - ovc-net
 
 volumes:
   pgdata:
+
+networks:
+  ovc-net:
+    driver: bridge
