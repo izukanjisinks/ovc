@@ -45,6 +45,13 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: /api/v1
+        VITE_FIREBASE_API_KEY: AIzaSyDQs6JXSy1TY3AbMVC5be77CAjt3EZmPZI
+        VITE_FIREBASE_AUTH_DOMAIN: ovc-storage.firebaseapp.com
+        VITE_FIREBASE_PROJECT_ID: ovc-storage
+        VITE_FIREBASE_STORAGE_BUCKET: ovc-storage.firebasestorage.app
+        VITE_FIREBASE_MESSAGING_SENDER_ID: "107133005217"
+        VITE_FIREBASE_APP_ID: "1:107133005217:web:9fd9b33a44e7822de16fe0"
+        VITE_FIREBASE_MEASUREMENT_ID: G-2V6957QBZ4
     container_name: ovc-frontend
     restart: unless-stopped
     ports:
