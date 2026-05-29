@@ -97,3 +97,54 @@ func (r *ReportRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM reports WHERE id = $1`, id)
 	return err
 }
+
+func (r *ReportRepository) SetBeneficiaries(ctx context.Context, reportID uuid.UUID, childIDs []uuid.UUID) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM report_beneficiaries WHERE report_id = $1`, reportID); err != nil {
+		return err
+	}
+	for _, childID := range childIDs {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO report_beneficiaries (report_id, child_id) VALUES ($1, $2)`, reportID, childID,
+		); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func (r *ReportRepository) GetBeneficiaries(ctx context.Context, reportID uuid.UUID) ([]models.Child, error) {
+	query := `
+		SELECT c.id, c.pupil_id, c.first_name, c.last_name, c.address, c.class_name,
+		       c.image_url, c.guardian_first_name, c.guardian_last_name,
+		       c.guardian_address, c.guardian_phone, c.created_by, c.created_at, c.updated_at
+		FROM children c
+		JOIN report_beneficiaries rb ON rb.child_id = c.id
+		WHERE rb.report_id = $1
+		ORDER BY c.last_name, c.first_name`
+
+	rows, err := r.db.QueryContext(ctx, query, reportID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	children := []models.Child{}
+	for rows.Next() {
+		var c models.Child
+		if err := rows.Scan(
+			&c.ID, &c.PupilID, &c.FirstName, &c.LastName, &c.Address, &c.ClassName,
+			&c.ImageURL, &c.GuardianFirstName, &c.GuardianLastName,
+			&c.GuardianAddress, &c.GuardianPhone, &c.CreatedBy, &c.CreatedAt, &c.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		children = append(children, c)
+	}
+	return children, rows.Err()
+}

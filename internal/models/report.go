@@ -15,28 +15,32 @@ const (
 )
 
 type Report struct {
-	ID        uuid.UUID  `json:"id"`
-	Title     string     `json:"title"`
-	Body      string     `json:"body"`
-	Term      Term       `json:"term"`
-	Year      int        `json:"year"`
-	CreatedBy *uuid.UUID `json:"created_by"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
+	ID            uuid.UUID      `json:"id"`
+	Title         string         `json:"title"`
+	Body          string         `json:"body"`
+	Term          Term           `json:"term"`
+	Year          int            `json:"year"`
+	CreatedBy     *uuid.UUID     `json:"created_by"`
+	CreatedByName string         `json:"created_by_name,omitempty"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	Beneficiaries []Child        `json:"beneficiaries,omitempty"`
 }
 
 type CreateReportRequest struct {
-	Title string `json:"title"`
-	Body  string `json:"body"`
-	Term  Term   `json:"term"`
-	Year  int    `json:"year"`
+	Title    string      `json:"title"`
+	Body     string      `json:"body"`
+	Term     Term        `json:"term"`
+	Year     int         `json:"year"`
+	ChildIDs []uuid.UUID `json:"child_ids"`
 }
 
 type UpdateReportRequest struct {
-	Title string `json:"title"`
-	Body  string `json:"body"`
-	Term  Term   `json:"term"`
-	Year  int    `json:"year"`
+	Title    string      `json:"title"`
+	Body     string      `json:"body"`
+	Term     Term        `json:"term"`
+	Year     int         `json:"year"`
+	ChildIDs []uuid.UUID `json:"child_ids"`
 }
 
 type ReportFilters struct {

@@ -50,7 +50,17 @@ func (s *ChildService) GetByID(ctx context.Context, id uuid.UUID) (*models.Child
 }
 
 func (s *ChildService) List(ctx context.Context, search string) ([]models.Child, error) {
-	return s.childRepo.List(ctx, search)
+	children, err := s.childRepo.List(ctx, search)
+	if err != nil {
+		return nil, err
+	}
+	for i := range children {
+		id := children[i].ID
+		children[i].Categories, _ = s.childRepo.GetCategories(ctx, id)
+		children[i].Requisites, _ = s.childRepo.GetRequisites(ctx, id)
+		children[i].Sponsors, _ = s.childRepo.GetSponsors(ctx, id)
+	}
+	return children, nil
 }
 
 func (s *ChildService) Update(ctx context.Context, id uuid.UUID, req models.UpdateChildRequest) error {
