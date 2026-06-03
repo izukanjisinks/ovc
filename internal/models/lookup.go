@@ -27,6 +27,29 @@ type Sponsor struct {
 	Name string    `json:"name"`
 }
 
+type NameRequest struct {
+	Name string `json:"name"`
+}
+
+type RequisiteRequest struct {
+	Name         string  `json:"name"`
+	DefaultPrice float64 `json:"default_price"`
+}
+
+func (r NameRequest) Validate() string {
+	if r.Name == "" {
+		return "name is required"
+	}
+	return ""
+}
+
+func (r RequisiteRequest) Validate() string {
+	if r.Name == "" {
+		return "name is required"
+	}
+	return ""
+}
+
 // Relationship set requests
 type SetCategoriesRequest struct {
 	CategoryIDs []uuid.UUID `json:"category_ids"`

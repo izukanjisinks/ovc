@@ -33,7 +33,7 @@ func (r *UserRepository) Create(ctx context.Context, u *models.User) error {
 		INSERT INTO users (email, password_hash, full_name, role_id)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at, updated_at`
-	return r.db.QueryRowContext(ctx, query, u.Email, u.PasswordHash, u.RoleID).
+	return r.db.QueryRowContext(ctx, query, u.Email, u.PasswordHash, u.FullName, u.RoleID).
 		Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
 }
 
