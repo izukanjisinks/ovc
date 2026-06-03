@@ -46,6 +46,55 @@ func (r *ChildRepository) Create(ctx context.Context, c *models.Child) error {
 	).Scan(&c.ID, &c.CreatedAt, &c.UpdatedAt)
 }
 
+func (r *ChildRepository) CreateWithRelations(ctx context.Context, c *models.Child, categoryIDs []uuid.UUID, sponsorIDs []uuid.UUID, requisites []models.RequisiteItem) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = tx.QueryRowContext(ctx, `
+		INSERT INTO children
+			(pupil_id, first_name, last_name, address, class_name, image_url,
+			 guardian_first_name, guardian_last_name, guardian_address, guardian_phone, created_by)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+		RETURNING id, created_at, updated_at`,
+		c.PupilID, c.FirstName, c.LastName, c.Address, c.ClassName, c.ImageURL,
+		c.GuardianFirstName, c.GuardianLastName, c.GuardianAddress, c.GuardianPhone, c.CreatedBy,
+	).Scan(&c.ID, &c.CreatedAt, &c.UpdatedAt)
+	if err != nil {
+		return err
+	}
+
+	for _, catID := range categoryIDs {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO child_categories (child_id, category_id) VALUES ($1, $2)`, c.ID, catID,
+		); err != nil {
+			return err
+		}
+	}
+
+	for _, item := range requisites {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO child_requisites (child_id, requisite_id, quantity, checked, price_per_item)
+			 VALUES ($1, $2, $3, $4, $5)`,
+			c.ID, item.RequisiteID, item.Quantity, item.Checked, item.PricePerItem,
+		); err != nil {
+			return err
+		}
+	}
+
+	for _, sID := range sponsorIDs {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO child_sponsors (child_id, sponsor_id) VALUES ($1, $2)`, c.ID, sID,
+		); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
 func (r *ChildRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.Child, error) {
 	row := r.db.QueryRowContext(ctx, childSelect+` WHERE id = $1`, id)
 	c, err := scanChild(row)
@@ -97,6 +146,64 @@ func (r *ChildRepository) Update(ctx context.Context, id uuid.UUID, req models.U
 		req.GuardianFirstName, req.GuardianLastName, req.GuardianAddress, req.GuardianPhone, id,
 	)
 	return err
+}
+
+func (r *ChildRepository) UpdateWithRelations(ctx context.Context, id uuid.UUID, req models.UpdateChildRequest) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, `
+		UPDATE children SET
+			first_name = $1, last_name = $2, address = $3, class_name = $4,
+			image_url = $5, guardian_first_name = $6, guardian_last_name = $7,
+			guardian_address = $8, guardian_phone = $9, updated_at = NOW()
+		WHERE id = $10`,
+		req.FirstName, req.LastName, req.Address, req.ClassName, req.ImageURL,
+		req.GuardianFirstName, req.GuardianLastName, req.GuardianAddress, req.GuardianPhone, id,
+	)
+	if err != nil {
+		return err
+	}
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM child_categories WHERE child_id = $1`, id); err != nil {
+		return err
+	}
+	for _, catID := range req.CategoryIDs {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO child_categories (child_id, category_id) VALUES ($1, $2)`, id, catID,
+		); err != nil {
+			return err
+		}
+	}
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM child_requisites WHERE child_id = $1`, id); err != nil {
+		return err
+	}
+	for _, item := range req.Requisites {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO child_requisites (child_id, requisite_id, quantity, checked, price_per_item)
+			 VALUES ($1, $2, $3, $4, $5)`,
+			id, item.RequisiteID, item.Quantity, item.Checked, item.PricePerItem,
+		); err != nil {
+			return err
+		}
+	}
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM child_sponsors WHERE child_id = $1`, id); err != nil {
+		return err
+	}
+	for _, sID := range req.SponsorIDs {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO child_sponsors (child_id, sponsor_id) VALUES ($1, $2)`, id, sID,
+		); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (r *ChildRepository) Delete(ctx context.Context, id uuid.UUID) error {

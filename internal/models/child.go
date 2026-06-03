@@ -39,6 +39,10 @@ type CreateChildRequest struct {
 	GuardianLastName  string  `json:"guardian_last_name"`
 	GuardianAddress   string  `json:"guardian_address"`
 	GuardianPhone     string  `json:"guardian_phone"`
+
+	CategoryIDs []uuid.UUID    `json:"category_ids"`
+	SponsorIDs  []uuid.UUID    `json:"sponsor_ids"`
+	Requisites  []RequisiteItem `json:"requisites"`
 }
 
 type UpdateChildRequest struct {
@@ -51,6 +55,10 @@ type UpdateChildRequest struct {
 	GuardianLastName  string  `json:"guardian_last_name"`
 	GuardianAddress   string  `json:"guardian_address"`
 	GuardianPhone     string  `json:"guardian_phone"`
+
+	CategoryIDs []uuid.UUID     `json:"category_ids"`
+	SponsorIDs  []uuid.UUID     `json:"sponsor_ids"`
+	Requisites  []RequisiteItem `json:"requisites"`
 }
 
 func (r CreateChildRequest) Validate() string {

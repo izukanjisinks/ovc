@@ -31,9 +31,12 @@ func (s *ChildService) Create(ctx context.Context, req models.CreateChildRequest
 		GuardianPhone:     req.GuardianPhone,
 		CreatedBy:         &createdBy,
 	}
-	if err := s.childRepo.Create(ctx, child); err != nil {
+	if err := s.childRepo.CreateWithRelations(ctx, child, req.CategoryIDs, req.SponsorIDs, req.Requisites); err != nil {
 		return nil, fmt.Errorf("pupil ID already exists")
 	}
+	child.Categories, _ = s.childRepo.GetCategories(ctx, child.ID)
+	child.Requisites, _ = s.childRepo.GetRequisites(ctx, child.ID)
+	child.Sponsors, _ = s.childRepo.GetSponsors(ctx, child.ID)
 	return child, nil
 }
 
@@ -67,7 +70,7 @@ func (s *ChildService) Update(ctx context.Context, id uuid.UUID, req models.Upda
 	if _, err := s.childRepo.FindByID(ctx, id); err != nil {
 		return fmt.Errorf("child not found")
 	}
-	return s.childRepo.Update(ctx, id, req)
+	return s.childRepo.UpdateWithRelations(ctx, id, req)
 }
 
 func (s *ChildService) Delete(ctx context.Context, id uuid.UUID) error {
